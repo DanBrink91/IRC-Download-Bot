@@ -6,6 +6,8 @@ import shlex
 
 import irc.client
 
+import settings
+
 class DCCReceive(irc.client.SimpleIRCClient):
     """
     Given a queue of objects in specified format, tries to download them one at a time. 
@@ -33,7 +35,7 @@ class DCCReceive(irc.client.SimpleIRCClient):
         self.received_bytes = 0
  
     def on_welcome(self, connection, event):
-        self.connection.join('#news')
+        self.connection.join(settings.CHANNEL)
    
     def get_version(self):
         """Returns the bot version.
@@ -66,8 +68,11 @@ class DCCReceive(irc.client.SimpleIRCClient):
             print "%s was not whitelisted. Aborting" % (nick)
             self.get_current()
             return
- 
-        self.filename = os.path.basename(filename)
+        if os.path.exists(settings.DOWNLOAD_PATH):
+            self.filename = os.path.join(settings.DOWNLOAD_PATH, os.path.basename(filename))
+        else:
+            print "Download location %s was not found, defaulting to local directory" % (settings.DOWNLOAD_PATH)
+            self.filename = os.path.basename(filename)
         if os.path.exists(self.filename):
             print "A file named", self.filename,
             print "already exists. Refusing to save it."
@@ -126,14 +131,9 @@ def main():
     if len(queue) < 1:
         print "Your input file needs at least one entry, in format: BOTNAME,PACK_NUM,FILENAME"
         sys.exit(1)
-   
-    server = "irc.rizon.net"
-    port = 6667
-    nickname = "gotembot-Dan"
- 
     c = DCCReceive(queue)
     try:
-        c.connect(server, port, nickname)
+        c.connect(settings.SERVER, settings.PORTS[0], settings.BOT_NICKNAMES[0])
     except irc.ServerConnectionError, x:
         print x
         sys.exit(1)
