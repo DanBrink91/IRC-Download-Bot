@@ -2,10 +2,10 @@
 SERVER = 'irc.rizon.net'
 
 # Ports to use
-PORTS = [6667, 6668, 6669]
+PORTS = [6665, 6666, 6667, 6668, 6669]
 
 # Collection of nicknames for the download bot(s) to use
-BOT_NICKNAMES = ['gotembot']
+BOT_NICKNAMES = ['gotembot', 'hotdogsandwich', 'whateverbot']
 
 # IRC channel to join once connected
 CHANNEL = '#news'

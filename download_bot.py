@@ -3,6 +3,7 @@ import struct
 import socket
 import sys
 import shlex
+import multiprocessing
 
 import irc.client
 
@@ -29,7 +30,7 @@ class DCCReceive(irc.client.SimpleIRCClient):
         
         # self.connection.privmsg(self.current['bot'], 'xdcc list')
         # Run this cancel command to avoid waiting
-        # self.connection.privmsg(self.current['bot'], 'xdcc cancel')
+        self.connection.privmsg(self.current['bot'], 'xdcc cancel')
         self.connection.privmsg(self.current['bot'], 'xdcc send %s' % self.current['pack_num'])
  
         self.received_bytes = 0
@@ -57,8 +58,11 @@ class DCCReceive(irc.client.SimpleIRCClient):
         # parse it
         payload = event.arguments[1]
         parts = shlex.split(payload)
-        command, filename, peer_address, peer_poort, size = parts 
-       
+        try:
+            command, filename, peer_address, peer_poort, size = parts 
+        except ValueError:
+            print "args: ", event.arguments[1]
+            print "parts: ", parts
         if command != "SEND":
             print command, "not SEND"
             return
@@ -107,8 +111,8 @@ class DCCReceive(irc.client.SimpleIRCClient):
  
     def on_disconnect(self, connection, event):
         sys.exit(0)
- 
-def main():
+
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         print "Usage: download_files <input_file>"
         print "\nReceives all files via DCC and then exits.  The files are stored in the"
@@ -117,27 +121,32 @@ def main():
     # build queue object from input file
     # Input File is of format BOTNAME,PACK_NUM,FILENAME
     queue = []
-    
+     
     try:
         input_file = open(sys.argv[1], "r")
     except (FileNotFoundError, IOError), x:
         print x
         sys.exit(1)
-   
+
     for line in input_file:
         line_info = line.split(',')
         queue.append({'bot': line_info[0], 'pack_num':line_info[1], 'filename':line_info[2]})
-   
+
     if len(queue) < 1:
         print "Your input file needs at least one entry, in format: BOTNAME,PACK_NUM,FILENAME"
         sys.exit(1)
-    c = DCCReceive(queue)
-    try:
-        c.connect(settings.SERVER, settings.PORTS[0], settings.BOT_NICKNAMES[0])
-    except irc.ServerConnectionError, x:
-        print x
-        sys.exit(1)
-    c.start()
- 
-if __name__ == "__main__":
-    main()
+
+    def fetch_files(port, nickname, files):
+        c = DCCReceive(files)
+        try:
+            c.connect(settings.SERVER, port, nickname)
+        except irc.ServerConnectionError, x:
+            print x
+            sys.exit(1)
+        c.start()
+
+    # TODO sort and distribute the download queue by bot, each process gets a different bot to download.
+    for i in range(min(settings.MAX_BOTS, len(queue))):
+        print i
+        p = multiprocessing.Process(target=fetch_files, args=(settings.PORTS[i], settings.BOT_NICKNAMES[i], [queue[i]]))
+        p.start()
