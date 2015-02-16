@@ -1,15 +1,15 @@
 import requests
 import myanimelist.session
-import settings
+import mal_settings
 
 # Populate file with current 'watching' list on MAL
 
 def main():
 	
 	# get watching list and episodes
-	session = myanimelist.session.Session(username=settings.username, password=settings.password)
+	session = myanimelist.session.Session(username=mal_settings.username, password=mal_settings.password)
 	session.login()
-	test = myanimelist.anime_list.AnimeList(session, settings.user)
+	test = myanimelist.anime_list.AnimeList(session, mal_settings.user)
 	print test.list
 	watching = {}
 	for key, value in test.list.items():
@@ -28,7 +28,6 @@ def main():
 			# encode because of titles like Tokyo Ghoul square root A
 			line = str(anime.encode('utf8')) + " - " + str(episode) + '\n' 
 			file_content.write(line)
-		print file_content
 		file_content.close()
 	except:
 		print "Error writing to txt file"
