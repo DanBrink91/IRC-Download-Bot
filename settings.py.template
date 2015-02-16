@@ -1,0 +1,8 @@
+# For session
+username = ""
+password = ""
+
+# Whatever list you are getting
+# It MUST be unicode
+# ex. u'User'
+user = u''
