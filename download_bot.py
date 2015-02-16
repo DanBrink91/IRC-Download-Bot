@@ -3,7 +3,6 @@ import struct
 import socket
 import sys
 import shlex
-import multiprocessing
 
 import irc.client
 
@@ -16,25 +15,39 @@ class DCCReceive(irc.client.SimpleIRCClient):
    
     def __init__(self, queue):
         irc.client.SimpleIRCClient.__init__(self)
-        self.received_bytes = 0
-        self.queue = queue
-        # list of bots we're supposed to be downloading from
-        self.whitelist = [entry['bot'] for entry in self.queue]
-   
-    def get_current(self):
-        """
-        Grabs the next item in the queue
-        """
-        self.current = self.queue.pop()
-        print "Attempting to download %s" % (self.current['filename'])
         
-        # self.connection.privmsg(self.current['bot'], 'xdcc list')
-        # Run this cancel command to avoid waiting
-        self.connection.privmsg(self.current['bot'], 'xdcc cancel')
-        self.connection.privmsg(self.current['bot'], 'xdcc send %s' % self.current['pack_num'])
- 
-        self.received_bytes = 0
- 
+        # dictionary BotName -> Object containing File and DCC info for the download
+        self.downloads = {}
+        
+        # dictionary IP Address -> Bot, also gives us free whitelisting!
+        self.dcc_to_bot = {}
+
+        self.queue = queue
+
+    def get_next(self):
+        """
+        Grabs the next item(s) from the queue to be downloaded
+        """
+        recently_added = []
+        # fill download queue, be sure not to let the same bot download two things at same time
+        for i in range(min(settings.MAX_DOWNLOADS - len(self.downloads), len(queue))):
+            # cant use for..in here because the list shrinks when we pop stuff!
+            j = 0
+            while j < len(queue):
+                if queue[j]['bot'] not in [downloading_bot for downloading_bot in self.downloads.keys()]:
+                    to_add = queue.pop(j)
+                    self.downloads[to_add['bot']] = {'received_bytes':0}
+                    recently_added.append(to_add)
+                else:
+                    j += 1
+        # Start downloads for anything that was just added
+        for added_download in recently_added:
+            print "Attempting to download %s" % (added_download['filename'])
+            
+            # Run this cancel command to avoid waiting
+            self.connection.privmsg(added_download['bot'], 'XDCC CANCEL')
+            self.connection.privmsg(added_download['bot'], 'XDCC SEND %s' % added_download['pack_num'])
+  
     def on_welcome(self, connection, event):
         self.connection.join(settings.CHANNEL)
    
@@ -45,14 +58,17 @@ class DCCReceive(irc.client.SimpleIRCClient):
        """
         return "Python irc.bot ({version})".format(
             version=irc.client.VERSION_STRING)
- 
- 
+    
+    # print out any private notices we get
+    def on_privnotice(self, connection, event):
+        print event.source.nick, event.arguments
+    
     # On intial ask for download
     def on_ctcp(self, connection, event):
         nick = event.source.nick
         if event.arguments[0] == 'VERSION':
             connection.ctcp_reply(nick, "VERSION " + self.get_version())
-            self.get_current()
+            self.get_next()
             return
         
         # parse it
@@ -67,45 +83,51 @@ class DCCReceive(irc.client.SimpleIRCClient):
             print command, "not SEND"
             return
         
-        # Make sure the person asking us to download is whitelisted
-        if nick not in self.whitelist:
-            print "%s was not whitelisted. Aborting" % (nick)
-            self.get_current()
-            return
+        # Try to  use preffered download path        
         if os.path.exists(settings.DOWNLOAD_PATH):
             self.filename = os.path.join(settings.DOWNLOAD_PATH, os.path.basename(filename))
         else:
             print "Download location %s was not found, defaulting to local directory" % (settings.DOWNLOAD_PATH)
             self.filename = os.path.basename(filename)
+        
+        # Check if file already exits
+        # TODO check if file needs to be resumed
         if os.path.exists(self.filename):
             print "A file named", self.filename,
             print "already exists. Refusing to save it."
-            self.connection.quit()
-       
-        self.file = open(self.filename, "w")
-        self.filesize = int(size)
-        self.dcc = self.dcc_connect(peer_address, int(peer_poort), "raw")
-   
+            try:
+                del self.downloads[nick]
+            except KeyError:
+                pass
+            return
+        
+        self.downloads[nick]['file'] = open(self.filename, "w")
+        self.downloads[nick]['filesize'] = int(size)
+        self.downloads[nick]['dcc'] = self.dcc_connect(peer_address, int(peer_poort), "raw")
+        # Save Address -> Nick conversion so we can use it later
+        self.dcc_to_bot[self.downloads[nick]['dcc'].peeraddress] = nick
        
     # Transfering data
     def on_dccmsg(self, connection, event):
+        nick = self.dcc_to_bot[event.source]
         data = event.arguments[0]
-        self.file.write(data)
+        self.downloads[nick]['file'].write(data)
         
-        self.received_bytes = self.received_bytes + len(data)
-        self.dcc.send_bytes(struct.pack("!I", self.received_bytes))
-        # self.dcc.privmsg(str(self.received_bytes))
+        self.downloads[nick]['received_bytes'] = self.downloads[nick]['received_bytes'] + len(data)
+        self.downloads[nick]['dcc'].send_bytes(struct.pack("!I", self.downloads[nick]['received_bytes']))
  
     # File finished transfering
     def on_dcc_disconnect(self, connection, event):
-        self.file.close()
-        print "Received file %s (%d bytes)." % (self.filename,
-                                                self.received_bytes)
+        nick = self.dcc_to_bot[event.source]
+        self.downloads[nick]['file'].close()
+        print "Received file from %s (%d bytes)." % (nick,
+                                                self.downloads[nick]['received_bytes'])
+        del self.downloads[nick]
         # Anything left to download?
         if len(self.queue) > 0:
             print "Grabbing Next Item"
-            self.get_current()
-        else:
+            self.get_next()
+        elif len(self.downloads) == 0:
             print "Queue finished"
             self.connection.quit()
  
@@ -136,17 +158,11 @@ if __name__ == "__main__":
         print "Your input file needs at least one entry, in format: BOTNAME,PACK_NUM,FILENAME"
         sys.exit(1)
 
-    def fetch_files(port, nickname, files):
-        c = DCCReceive(files)
-        try:
-            c.connect(settings.SERVER, port, nickname)
-        except irc.ServerConnectionError, x:
-            print x
-            sys.exit(1)
-        c.start()
+    c = DCCReceive(queue)
+    try:
+        c.connect(settings.SERVER, settings.PORT, settings.BOT_NICKNAME)
+    except irc.ServerConnectionError, x:
+        print x
+        sys.exit(1)
+    c.start()
 
-    # TODO sort and distribute the download queue by bot, each process gets a different bot to download.
-    for i in range(min(settings.MAX_BOTS, len(queue))):
-        print i
-        p = multiprocessing.Process(target=fetch_files, args=(settings.PORTS[i], settings.BOT_NICKNAMES[i], [queue[i]]))
-        p.start()
