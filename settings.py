@@ -2,16 +2,16 @@
 SERVER = 'irc.rizon.net'
 
 # Ports to use
-PORTS = [6665, 6666, 6667, 6668, 6669]
+PORT = 6667
 
 # Collection of nicknames for the download bot(s) to use
-BOT_NICKNAMES = ['gotembot', 'hotdogsandwich', 'whateverbot']
+BOT_NICKNAME = 'GrabberGuy'
 
 # IRC channel to join once connected
 CHANNEL = '#news'
 
-# Maximum Number of Bots allowed to be downloading at once
-MAX_BOTS = 3
+# Maximum Number of files allowed to be downloading at once
+MAX_DOWNLOADS = 3
 
 # Location to download everything into (downloads can specify a location within this one or override it)
 DOWNLOAD_PATH = "/home/dan/Videos"
