@@ -37,7 +37,7 @@ def main():
 							titles.append(title)
 					else:
 						titles.append(val)
-						
+
 			watching[key] = Entry(titles, value['episodes_watched'])
 
 
@@ -49,7 +49,7 @@ def main():
 
 	try:
 		file_content = open(filename, 'w')
-		json_list = jsonpickle.encode(watching)
+		json_list = jsonpickle.encode(watching, unpicklable = False)
 		file_content.write(json_list)
 		file_content.close()
 	except:
