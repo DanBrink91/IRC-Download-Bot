@@ -40,6 +40,7 @@ def parse_name(name):
 	if groups:
 		return groups.group(1), groups.group(2), groups.group(3), groups.group(4)
 	else:
+		# NEIN NEIN NEIN NEIN
 		return None, None, None, None
 	pass
 with open('parsed_results.csv', 'wb') as csvfile:
