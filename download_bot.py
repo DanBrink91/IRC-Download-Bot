@@ -95,10 +95,9 @@ class DCCReceive(irc.client.SimpleIRCClient):
         if os.path.exists(self.filename):
             print "A file named", self.filename,
             print "already exists. Refusing to save it."
-            try:
-                del self.downloads[nick]
-            except KeyError:
-                pass
+            del self.downloads[nick]
+            self.connection.privmsg(nick, 'XDCC CANCEL')
+            self.get_next()
             return
         
         self.downloads[nick]['file'] = open(self.filename, "w")
