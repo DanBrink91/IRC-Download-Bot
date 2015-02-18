@@ -10,7 +10,7 @@ import settings
 
 class DCCReceive(irc.client.SimpleIRCClient):
     """
-    Given a queue of objects in specified format, tries to download them one at a time. 
+    Given a queue of objects in specified format, tries to download them. 
     """
    
     def __init__(self, queue):
@@ -59,9 +59,9 @@ class DCCReceive(irc.client.SimpleIRCClient):
         return "Python irc.bot ({version})".format(
             version=irc.client.VERSION_STRING)
     
-    # print out any private notices we get
-    def on_privnotice(self, connection, event):
-        print event.source.nick, event.arguments
+    # # print out any private notices we get
+    # def on_privnotice(self, connection, event):
+    #     print event.source.nick, event.arguments
     
     # On intial ask for download
     def on_ctcp(self, connection, event):
@@ -79,32 +79,41 @@ class DCCReceive(irc.client.SimpleIRCClient):
         except ValueError:
             print "args: ", event.arguments[1]
             print "parts: ", parts
+            return
         if command != "SEND":
             print command, "not SEND"
             return
         
         # Try to  use preffered download path        
         if os.path.exists(settings.DOWNLOAD_PATH):
-            self.filename = os.path.join(settings.DOWNLOAD_PATH, os.path.basename(filename))
+            filename = os.path.join(settings.DOWNLOAD_PATH, os.path.basename(filename))
         else:
             print "Download location %s was not found, defaulting to local directory" % (settings.DOWNLOAD_PATH)
-            self.filename = os.path.basename(filename)
+            filename = os.path.basename(filename)
         
         # Check if file already exits
         # TODO check if file needs to be resumed
-        if os.path.exists(self.filename):
-            print "A file named", self.filename,
+        if os.path.exists(filename):
+            current_size = os.path.getsize(filename)   
+            # if current_size < int(size):
+            #     self.downloads[nick]['received_bytes'] = current_size
+            #     percent_finished = 100 * current_size / float(size)
+            #     print "File %s was not completed(%0.2f %% done), attempting to resume." % (filename, percent_finished)
+            #     resuming = True
+            # else:
+            print "A file named", filename,
             print "already exists. Refusing to save it."
             del self.downloads[nick]
             self.connection.privmsg(nick, 'XDCC CANCEL')
             self.get_next()
             return
-        
-        self.downloads[nick]['file'] = open(self.filename, "w")
-        self.downloads[nick]['filesize'] = int(size)
         self.downloads[nick]['dcc'] = self.dcc_connect(peer_address, int(peer_poort), "raw")
         # Save Address -> Nick conversion so we can use it later
         self.dcc_to_bot[self.downloads[nick]['dcc'].peeraddress] = nick
+        
+        self.downloads[nick]['file'] = open(filename, "w")
+        self.downloads[nick]['filesize'] = int(size)
+        
        
     # Transfering data
     def on_dccmsg(self, connection, event):
@@ -119,8 +128,11 @@ class DCCReceive(irc.client.SimpleIRCClient):
     def on_dcc_disconnect(self, connection, event):
         nick = self.dcc_to_bot[event.source]
         self.downloads[nick]['file'].close()
-        print "Received file from %s (%d bytes)." % (nick,
-                                                self.downloads[nick]['received_bytes'])
+
+        percent_finished =  100 * float(self.downloads[nick]['received_bytes']) / self.downloads[nick]['filesize']  
+        
+        print "Received file from %s (%0.2f percent %d/%d bytes)." % (nick,
+         percent_finished, self.downloads[nick]['received_bytes'], self.downloads[nick]['filesize'])
         del self.downloads[nick]
         # Anything left to download?
         if len(self.queue) > 0:

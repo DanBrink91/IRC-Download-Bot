@@ -11,7 +11,7 @@ BOT_NICKNAME = 'GrabberGuy'
 CHANNEL = '#news'
 
 # Maximum Number of files allowed to be downloading at once
-MAX_DOWNLOADS = 3
+MAX_DOWNLOADS = 1
 
 # Location to download everything into (downloads can specify a location within this one or override it)
 DOWNLOAD_PATH = "/home/dan/Videos"
