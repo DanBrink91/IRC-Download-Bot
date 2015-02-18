@@ -24,8 +24,7 @@ def main():
 		c.execute('CREATE UNIQUE INDEX anime_title ON watching_list (anime_title)')
 		conn.close()
 	except:
-		"Error establishing db"
-
+		print "DB already exists or error establishing DB"
 	# get watching list and episodes
 	session = myanimelist.session.Session(username=mal_settings.username, password=mal_settings.password)
 	session.login()
