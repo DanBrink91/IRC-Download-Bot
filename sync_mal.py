@@ -35,6 +35,7 @@ def main():
 		if value['status'] == "Watching":
 
 			title = key.title
+			print key.title
 			other_titles = []
 			episode = value['episodes_watched']
 			max_eps = key.episodes
@@ -46,8 +47,8 @@ def main():
 
 					# Sometimes it is a list of alternative titles..
 					if type(val) is list:
-						for title in val:
-							other_titles.append(title)
+						for a_title in val:
+							other_titles.append(a_title)
 					else:
 						other_titles.append(val)
 
