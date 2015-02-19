@@ -8,6 +8,24 @@ import irc.client
 
 import settings
 
+def bytes_to_human_string(num_bytes):
+    """
+    Helper function to convert bytes (number) into bytes, kb, mb, or gb string.
+    """
+    if num_bytes > 1024:
+        kb = num_bytes / 1024.0
+        if kb > 1024:
+            mb = kb / 1024.0
+            if mb > 1024:
+                gb = kb / 1024.0
+                return "%.2f gb" % gb
+            else:
+                return "%.2f mb" % mb 
+        else:
+            return "%.2f kb" % kb
+    else:
+        return "%d bytes" % num_bytes
+
 class DCCReceive(irc.client.SimpleIRCClient):
     """
     Given a queue of objects in specified format, tries to download them. 
@@ -29,6 +47,7 @@ class DCCReceive(irc.client.SimpleIRCClient):
         Grabs the next item(s) from the queue to be downloaded
         """
         recently_added = []
+        print "In range: ", min(settings.MAX_DOWNLOADS - len(self.downloads), len(queue)) 
         # fill download queue, be sure not to let the same bot download two things at same time
         for i in range(min(settings.MAX_DOWNLOADS - len(self.downloads), len(queue))):
             # cant use for..in here because the list shrinks when we pop stuff!
@@ -38,8 +57,8 @@ class DCCReceive(irc.client.SimpleIRCClient):
                     to_add = queue.pop(j)
                     self.downloads[to_add['bot']] = {'received_bytes':0}
                     recently_added.append(to_add)
-                else:
-                    j += 1
+                    break
+                j += 1
         # Start downloads for anything that was just added
         for added_download in recently_added:
             print "Attempting to download %s" % (added_download['filename'])
@@ -131,8 +150,8 @@ class DCCReceive(irc.client.SimpleIRCClient):
 
         percent_finished =  100 * float(self.downloads[nick]['received_bytes']) / self.downloads[nick]['filesize']  
         
-        print "Received file from %s (%0.2f percent %d/%d bytes)." % (nick,
-         percent_finished, self.downloads[nick]['received_bytes'], self.downloads[nick]['filesize'])
+        print "Received file from %s (%0.2f percent %s/%s)." % (nick,
+         percent_finished, bytes_to_human_string(self.downloads[nick]['received_bytes']), bytes_to_human_string(self.downloads[nick]['filesize']))
         del self.downloads[nick]
         # Anything left to download?
         if len(self.queue) > 0:
@@ -169,6 +188,7 @@ if __name__ == "__main__":
         print "Your input file needs at least one entry, in format: BOTNAME,PACK_NUM,FILENAME"
         sys.exit(1)
 
+    irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
     c = DCCReceive(queue)
     try:
         c.connect(settings.SERVER, settings.PORT, settings.BOT_NICKNAME)
