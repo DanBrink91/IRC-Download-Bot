@@ -1,47 +1,36 @@
 import requests
 import urllib
 import json
-import jsonpickle
 import myanimelist.session
 import mal_settings
 import sqlite3
 
-class Entry:
-	def __init__(self, titles, episode):
-		self.titles = titles
-		self.episode = episode
-
 def main():
 
-	try:
-		# Populate db with current 'watching' list on MAL
+	# Populate db with current 'watching' list on MAL
+	conn = sqlite3.connect('mal_db.db')
+	c = conn.cursor()
+	
+	# Create table and index it if its not already done
+	c.execute('CREATE TABLE IF NOT EXISTS animes(id INTEGER PRIMARY KEY ASC, anime_title, alternative_titles, current_ep, max_ep, mal_id)')
+	c.execute('CREATE UNIQUE INDEX IF NOT EXISTS mal_id ON animes (mal_id)')
 
-		#check if it exists
-		conn = sqlite3.connect('mal_db.db')
-		c = conn.cursor()
-		c.execute('CREATE TABLE watching_list(anime_title, alternative_titles, current_ep, max_ep)')
-		#may or may not be the right thing to do idk
-		c.execute('CREATE UNIQUE INDEX anime_title ON watching_list (anime_title)')
-		conn.close()
-	except:
-		print "DB already exists or error establishing DB"
 	# get watching list and episodes
 	session = myanimelist.session.Session(username=mal_settings.username, password=mal_settings.password)
 	session.login()
 	user_list = myanimelist.anime_list.AnimeList(session, mal_settings.user)
-
-	for key, value in user_list.list.items():
-
-		if value['status'] == "Watching":
-
-			title = key.title
-			print key.title
+	
+	for anime_object, watch_info in user_list.list.items():
+		if watch_info['status'] == "Watching":
+			mal_id = anime_object.id
+			title = anime_object.title
+			print anime_object.title
 			other_titles = []
-			episode = value['episodes_watched']
-			max_eps = key.episodes
+			episode = watch_info['episodes_watched']
+			max_eps = anime_object.episodes
 
 			# Get the alternative titles and add them
-			for alt_title, val in key.alternative_titles.iteritems():
+			for alt_title, val in anime_object.alternative_titles.iteritems():
 
 				if alt_title == "English" or alt_title == "Synonyms":
 
@@ -55,15 +44,8 @@ def main():
 			# comma separated for now
 			other_titles = ', '.join(other_titles)
 			print other_titles
-			conn = sqlite3.connect('mal_db.db')
-			c = conn.cursor()
 			#sqlite doesn't have insert on duplicate so whatever
-			c.execute('REPLACE INTO watching_list (anime_title, alternative_titles, current_ep, max_ep) VALUES (?, ?, ?, ?)', (title, other_titles, episode, max_eps))
-
-			# UPDATE watching_list SET episode = episode, max_eps = max_eps WHERE title = title
-			# ON DUPLICATE KEY UPDATE 
-			# 	episode=VALUES(episode),
-			# 	max_eps=VALUES(max_eps) ;
+			c.execute('REPLACE INTO animes (anime_title, alternative_titles, current_ep, max_ep, mal_id) VALUES (?, ?, ?, ?, ?)', (title, other_titles, episode, max_eps, mal_id))
 			conn.commit()
 
 	conn.close()
