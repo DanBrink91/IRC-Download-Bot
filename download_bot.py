@@ -164,10 +164,9 @@ class DCCReceive(irc.client.SimpleIRCClient):
         del self.downloads[nick]
         # Anything left to download?
         if len(self.queue) > 0:
-            print "Grabbing Next Item"
             self.get_next()
         elif len(self.downloads) == 0:
-            print "Queue finished"
+            print "Download Queue Empty"
             self.connection.quit()
  
     def on_disconnect(self, connection, event):

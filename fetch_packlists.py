@@ -30,7 +30,7 @@ def main():
 		# Which episodes have we downloaded 
 		c.execute('select number from episodes where series=? AND status = 1', (anime[0], ))
 		watched = c.fetchall()
-		episodes_needed = [i for i in range(1, anime[4]+1) if i not in watched]
+		episodes_needed = [i for i in range(anime[3], anime[4]+1) if i not in watched]
 		# Search for pack lists
 		anime_title = urllib.quote(anime[1])
 		url = BASE_URL + anime_title + ".json"
