@@ -12,8 +12,26 @@ def main():
 	c = conn.cursor()
 	
 	# Create table and index it if its not already done
-	c.execute('CREATE TABLE IF NOT EXISTS animes(id INTEGER PRIMARY KEY ASC, anime_title, alternative_titles, current_ep, max_ep, mal_id)')
+	c.execute('''CREATE TABLE IF NOT EXISTS animes(
+		id INTEGER PRIMARY KEY ASC,
+		title TEXT,
+		alternative_titles TEXT,
+		current_ep INTEGER,
+		max_ep INTEGER,
+		mal_id INTEGER)
+	''')
 	c.execute('CREATE UNIQUE INDEX IF NOT EXISTS mal_id ON animes (mal_id)')
+	
+	c.execute('''CREATE TABLE IF NOT EXISTS episodes(
+		id INTEGER PRIMARY KEY ASC,
+		number INTEGER,
+		status INTEGER,
+		series INTEGER,
+		botname TEXT,
+		packnumber INTEGER,
+		FOREIGN KEY(series) REFERENCES animes(id),
+		UNIQUE(number, series) ON CONFLICT REPLACE
+	)''')
 
 	# get watching list and episodes
 	session = myanimelist.session.Session(username=mal_settings.username, password=mal_settings.password)
@@ -41,11 +59,11 @@ def main():
 					else:
 						other_titles.append(val)
 
-			# comma separated for now
-			other_titles = ', '.join(other_titles)
+			# using && as a separater for now
+			other_titles = '&&'.join(other_titles)
 			print other_titles
 			#sqlite doesn't have insert on duplicate so whatever
-			c.execute('REPLACE INTO animes (anime_title, alternative_titles, current_ep, max_ep, mal_id) VALUES (?, ?, ?, ?, ?)', (title, other_titles, episode, max_eps, mal_id))
+			c.execute('REPLACE INTO animes (title, alternative_titles, current_ep, max_ep, mal_id) VALUES (?, ?, ?, ?, ?)', (title, other_titles, episode, max_eps, mal_id))
 			conn.commit()
 
 	conn.close()

@@ -14,13 +14,10 @@ if os.path.isfile('pack_data.json'):
 		names = json.loads(f.read())
 else:
 	names = []
-	for title in anime_titles[1:]:
-		print URL % urllib.quote(title)
+	for title in anime_titles:
 		response = requests.get(URL % urllib.quote(title), verify=False)
-
 		if response.status_code == 200:
 			response_data = response.json()['response']
-			print response_data
 			if response_data['status']['code'] == 200:
 				if 'packs' in response_data['data']:
 
@@ -42,7 +39,6 @@ def parse_name(name):
 	else:
 		# NEIN NEIN NEIN NEIN
 		return None, None, None, None
-	pass
 with open('parsed_results.csv', 'wb') as csvfile:
 	csvwriter = csv.writer(csvfile)
 	csvwriter.writerow(['Subgroup', 'Title', 'Episode #', 'Quality', 'Name Text'])	

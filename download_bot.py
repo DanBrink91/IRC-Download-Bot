@@ -3,6 +3,7 @@ import struct
 import socket
 import sys
 import shlex
+import sqlite3
 
 import irc.client
 
@@ -31,7 +32,7 @@ class DCCReceive(irc.client.SimpleIRCClient):
     Given a queue of objects in specified format, tries to download them. 
     """
    
-    def __init__(self, queue):
+    def __init__(self, queue, cursor):
         irc.client.SimpleIRCClient.__init__(self)
         
         # dictionary BotName -> Object containing File and DCC info for the download
@@ -41,27 +42,30 @@ class DCCReceive(irc.client.SimpleIRCClient):
         self.dcc_to_bot = {}
 
         self.queue = queue
+        self.cur = cursor
 
     def get_next(self):
         """
         Grabs the next item(s) from the queue to be downloaded
         """
         recently_added = []
-        print "In range: ", min(settings.MAX_DOWNLOADS - len(self.downloads), len(queue)) 
         # fill download queue, be sure not to let the same bot download two things at same time
         for i in range(min(settings.MAX_DOWNLOADS - len(self.downloads), len(queue))):
-            # cant use for..in here because the list shrinks when we pop stuff!
-            j = 0
-            while j < len(queue):
+            #
+            for j in range(len(queue)):
                 if queue[j]['bot'] not in [downloading_bot for downloading_bot in self.downloads.keys()]:
                     to_add = queue.pop(j)
-                    self.downloads[to_add['bot']] = {'received_bytes':0}
+                    self.downloads[to_add['bot']] = {
+                     'received_bytes':0,
+                     'episode_id': to_add['id'],
+                     'series_title': to_add['series_title'],
+                     'display_name': to_add['series_title'] + ' - ' + to_add['episode_number']
+                     }
                     recently_added.append(to_add)
                     break
-                j += 1
         # Start downloads for anything that was just added
         for added_download in recently_added:
-            print "Attempting to download %s" % (added_download['filename'])
+            print "Attempting to download %s" % (added_download['series_title'] + ' - ' + added_download['episode_number'])
             
             # Run this cancel command to avoid waiting
             self.connection.privmsg(added_download['bot'], 'XDCC CANCEL')
@@ -105,7 +109,9 @@ class DCCReceive(irc.client.SimpleIRCClient):
         
         # Try to  use preffered download path        
         if os.path.exists(settings.DOWNLOAD_PATH):
-            filename = os.path.join(settings.DOWNLOAD_PATH, os.path.basename(filename))
+            if not os.path.exists(os.path.join(settings.DOWNLOAD_PATH, self.downloads[nick]['series_title'])):
+                os.makedirs(os.path.join(settings.DOWNLOAD_PATH, self.downloads[nick]['series_title']))
+            filename = os.path.join(settings.DOWNLOAD_PATH, self.downloads[nick]['series_title'], os.path.basename(filename))
         else:
             print "Download location %s was not found, defaulting to local directory" % (settings.DOWNLOAD_PATH)
             filename = os.path.basename(filename)
@@ -148,10 +154,13 @@ class DCCReceive(irc.client.SimpleIRCClient):
         nick = self.dcc_to_bot[event.source]
         self.downloads[nick]['file'].close()
 
+        if self.downloads[nick]['received_bytes'] == self.downloads[nick]['filesize']:
+            self.cur.execute('UPDATE episodes SET status=1 WHERE id = ?', (self.downloads[nick]['episode_id'],))
+
         percent_finished =  100 * float(self.downloads[nick]['received_bytes']) / self.downloads[nick]['filesize']  
-        
         print "Received file from %s (%0.2f percent %s/%s)." % (nick,
          percent_finished, bytes_to_human_string(self.downloads[nick]['received_bytes']), bytes_to_human_string(self.downloads[nick]['filesize']))
+
         del self.downloads[nick]
         # Anything left to download?
         if len(self.queue) > 0:
@@ -165,35 +174,36 @@ class DCCReceive(irc.client.SimpleIRCClient):
         sys.exit(0)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print "Usage: download_files <input_file>"
-        print "\nReceives all files via DCC and then exits.  The files are stored in the"
-        print "current directory."
-        sys.exit(1)
-    # build queue object from input file
-    # Input File is of format BOTNAME,PACK_NUM,FILENAME
     queue = []
-     
     try:
-        input_file = open(sys.argv[1], "r")
-    except (FileNotFoundError, IOError), x:
-        print x
+        conn = sqlite3.connect('mal_db.db')
+        cur = conn.cursor()
+    except:
+        print "Could not connect to sqlite3 database, make sure it exists (run sync_mal)"
         sys.exit(1)
-
-    for line in input_file:
-        line_info = line.split(',')
-        queue.append({'bot': line_info[0], 'pack_num':line_info[1], 'filename':line_info[2]})
+    cur.execute("SELECT * FROM episodes WHERE status != 1")
+    for download_needed in cur.fetchall():
+        # TODO make sure anime title is valid directory name, possibly cache these to avoid queries
+        cur.execute('SELECT title FROM animes WHERE id=?', (download_needed[3],))
+        anime_title = cur.fetchone()[0]
+        print anime_title
+        queue.append({
+            'bot': download_needed[4],
+            'pack_num':download_needed[5], 
+            'id': download_needed[0],
+            'series_title': anime_title,
+            'episode_number': download_needed[1]})
 
     if len(queue) < 1:
         print "Your input file needs at least one entry, in format: BOTNAME,PACK_NUM,FILENAME"
         sys.exit(1)
 
     irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
-    c = DCCReceive(queue)
+    c = DCCReceive(queue, cur)
     try:
         c.connect(settings.SERVER, settings.PORT, settings.BOT_NICKNAME)
     except irc.ServerConnectionError, x:
         print x
         sys.exit(1)
     c.start()
-
+    conn.close()
