@@ -59,13 +59,13 @@ class DCCReceive(irc.client.SimpleIRCClient):
                      'received_bytes':0,
                      'episode_id': to_add['id'],
                      'series_title': to_add['series_title'],
-                     'display_name': to_add['series_title'] + ' - ' + to_add['episode_number']
+                     'display_name': to_add['series_title'] + ' - ' + str(to_add['episode_number'])
                      }
                     recently_added.append(to_add)
                     break
         # Start downloads for anything that was just added
         for added_download in recently_added:
-            print "Attempting to download %s" % (added_download['series_title'] + ' - ' + added_download['episode_number'])
+            print "Attempting to download %s" % (added_download['series_title'] + ' - ' + str(added_download['episode_number']))
             
             # Run this cancel command to avoid waiting
             self.connection.privmsg(added_download['bot'], 'XDCC CANCEL')
