@@ -27,7 +27,10 @@ def main():
 	episodes_to_add = []
 	# TODO resolution and bot names
 	for anime in anime_list:
-		print "Working on: ", anime[1]
+		try:
+			print "Working on: ", anime[1]
+		except UnicodeEncodeError:
+			print "Working on (mis-encoded): ", anime[1].encode('ascii', 'ignore') 
 		# Which episodes have we downloaded 
 		c.execute('select number from episodes where series=? AND status = 1', (anime[0], ))
 		watched = c.fetchall()
@@ -37,6 +40,7 @@ def main():
 		# If we don't need anything skip this anime
 		if len(episodes_needed) == 0:
 			continue
+			
 		# Compile a list of all possible names we can search for
 		possible_titles = [anime[1]] + anime[2].split('&&') 
 		for anime_title in possible_titles:

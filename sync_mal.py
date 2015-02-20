@@ -29,6 +29,8 @@ def main():
 		series INTEGER,
 		botname TEXT,
 		packnumber INTEGER,
+		subgroup TEXT,
+		quality TEXT, 
 		FOREIGN KEY(series) REFERENCES animes(id),
 		UNIQUE(number, series) ON CONFLICT REPLACE
 	)''')
@@ -41,8 +43,7 @@ def main():
 	for anime_object, watch_info in user_list.list.items():
 		if watch_info['status'] == "Watching":
 			mal_id = anime_object.id
-			title = anime_object.title
-			print anime_object.title
+			title = anime_object.title.encode('ascii', 'ignore')
 			other_titles = []
 			episode = watch_info['episodes_watched']
 			max_eps = anime_object.episodes
@@ -55,15 +56,13 @@ def main():
 					# Sometimes it is a list of alternative titles..
 					if type(val) is list:
 						for a_title in val:
-							other_titles.append(a_title)
+							other_titles.append(a_title.encode('ascii', 'ignore'))
 					else:
-						other_titles.append(val)
-
+						other_titles.append(val.encode('ascii', 'ignore'))
 			# using && as a separater for now
-			other_titles = '&&'.join(other_titles)
-			print other_titles
+			other_titles_string = '&&'.join(other_titles)
 			#sqlite doesn't have insert on duplicate so whatever
-			c.execute('REPLACE INTO animes (title, alternative_titles, current_ep, max_ep, mal_id) VALUES (?, ?, ?, ?, ?)', (title, other_titles, episode, max_eps, mal_id))
+			c.execute('REPLACE INTO animes (title, alternative_titles, current_ep, max_ep, mal_id) VALUES (?, ?, ?, ?, ?)', (title, other_titles_string, episode, max_eps, mal_id))
 			conn.commit()
 
 	conn.close()
