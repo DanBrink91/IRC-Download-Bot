@@ -67,7 +67,13 @@ def main():
 							# TODO check quality and make sure bot is whitelisted here
 							# TODO priortize different bots to allow faster downloading?
 							if episode_num in episodes_needed:
-								episodes_to_add.append({'pack':pack, 'episode': episode_num, 'anime':anime[0]})
+								episodes_to_add.append({
+									'pack':pack,
+									'episode': episode_num,
+									'anime':anime[0],
+									'subgroup': subgroup,
+									'quality': quality
+									})
 								episodes_needed.pop(episodes_needed.index(episode_num))
 						break
 		if len(episodes_needed):
@@ -76,8 +82,8 @@ def main():
 			print "Unable to find the rest of the episodes: ", ",".join(episodes_needed)
 
 	for added_episode in episodes_to_add:
-		c.execute('INSERT OR IGNORE INTO episodes (number, status, series, botname, packnumber) VALUES (?, 0, ?, ?, ?)',
-			(added_episode['episode'], added_episode['anime'], added_episode['pack']['botname'], added_episode['pack']['id']))
+		c.execute('INSERT OR IGNORE INTO episodes (number, status, series, botname, packnumber, subgroup, quality) VALUES (?, 0, ?, ?, ?, ? , ?)',
+			(added_episode['episode'], added_episode['anime'], added_episode['pack']['botname'], added_episode['pack']['id'], added_episode['subgroup'], added_episode['quality'],))
 	conn.commit()
 
 	conn.close()
