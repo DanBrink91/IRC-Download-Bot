@@ -1,0 +1,24 @@
+<!doctype html>
+<title>Dorthy Browser Index</title>
+<h1>Anime Index</h1>
+<h2>Ongoing Series</h2>
+{% if ongoing %}
+<ul>
+	{% for anime in ongoing %}
+		<li><a href="episode/{{anime.episode_id}}">{{anime.title}} - Episode {{anime.current_episode}}</a></li>
+	{% endfor %}
+</ul>
+{% else %}
+<p>No ongoing anime :( </p>
+{% endif %}
+
+<h2>Completed Series</h2>
+{% if completed %}
+<ul>
+	{% for anime in completed %}
+		<li><a href="anime/{{anime.id}}">{{anime.title}}</a></li>
+	{% endfor %}
+</ul>
+{% else %}
+<p>No completed anime</p>
+{% endif %}

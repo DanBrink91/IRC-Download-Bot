@@ -1,7 +1,12 @@
+Flask==0.10.1
+Jinja2==2.7.3
+MarkupSafe==0.23
+Werkzeug==0.10.1
 argparse==1.2.1
 beautifulsoup4==4.3.2
 inflect==0.2.5
 irc==11.1.1
+itsdangerous==0.24
 jaraco.apt==1.0
 jaraco.classes==1.1
 jaraco.collections==1.0
