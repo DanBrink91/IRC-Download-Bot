@@ -2,7 +2,7 @@ import requests
 import urllib
 import json
 import myanimelist.session
-import mal_settings
+import settings
 import sqlite3
 
 def main():
@@ -36,9 +36,9 @@ def main():
 	)''')
 
 	# get watching list and episodes
-	session = myanimelist.session.Session(username=mal_settings.username, password=mal_settings.password)
+	session = myanimelist.session.Session(username=settings.username, password=settings.password)
 	session.login()
-	user_list = myanimelist.anime_list.AnimeList(session, mal_settings.user)
+	user_list = myanimelist.anime_list.AnimeList(session, settings.user)
 	
 	for anime_object, watch_info in user_list.list.items():
 		if watch_info['status'] == "Watching":
