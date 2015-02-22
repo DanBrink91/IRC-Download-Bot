@@ -1,8 +1,9 @@
 import sqlite3
-from flask import Flask, g, render_template
+from flask import Flask, g, render_template, send_from_directory
+import os
 
 DATABASE = "../mal_db.db"
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/home/dan/Videos')
 
 def make_dicts(cursor, row):
 	"""
@@ -64,8 +65,12 @@ def anime(anime_id):
 def episode(episode_id):
 	episode_info = query_db("SELECT * FROM episodes WHERE id=?", (episode_id, ), True)
 	anime_info = query_db("SELECT * FROM animes WHERE id=?", (episode_info['series'], ), True)
+	episode_path = os.path.join(anime_info['title'], episode_info['filename']) 
+	return render_template('episode.html', episode=episode_info, anime=anime_info, episode_path=episode_path)
 
-	return render_template('episode.html', episode=episode_info, anime=anime_info)
+@app.route('/video/<path:filename>')
+def video(filename):
+	return send_from_directory('/home/dan/Videos/', filename)
 if __name__ == '__main__':
 	app.debug = True
 	app.run()

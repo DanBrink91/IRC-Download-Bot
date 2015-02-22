@@ -30,7 +30,8 @@ def main():
 		botname TEXT,
 		packnumber INTEGER,
 		subgroup TEXT,
-		quality TEXT, 
+		quality TEXT,
+		filename TEXT,
 		FOREIGN KEY(series) REFERENCES animes(id),
 		UNIQUE(number, series) ON CONFLICT REPLACE
 	)''')
