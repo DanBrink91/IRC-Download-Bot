@@ -17,13 +17,13 @@ def parse_name(name):
 
 def compare_packs(pack1, pack2):
 
-	a_index = len(mal_settings.preference) + 1
-	for i, pref in enumerate(mal_settings.preference):
+	a_index = len(mal_settings.resolution_pref) + 1
+	for i, pref in enumerate(mal_settings.resolution_pref):
 		if pref in pack1:
 			a_index = i
 
 	b_index = len(pref) + 1
-	for i, pref in enumerate(mal_settings.preference):
+	for i, pref in enumerate(mal_settings.resolution_pref):
 		if pref in pack2:
 			b_index = i
 
@@ -75,7 +75,7 @@ def main():
 					if response_data['data'] and 'packs' in response_data['data']:
 						#filter packs
 
-						sorted_list = sorted(response_data['data']['packs'], cmp=cmp)
+						sorted_list = sorted(response_data['data']['packs'], cmp=compare_packs)
 						print sorted_list
 						for pack in sorted_list:
 							if 'IPV6' in pack['botname'].upper():
