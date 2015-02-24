@@ -75,9 +75,9 @@ def main():
 					if response_data['data'] and 'packs' in response_data['data']:
 						#filter packs
 
-						test = sorted(response_data['data']['packs'], cmp=cmp)
-						print test
-						for pack in response_data['data']['packs']:
+						sorted_list = sorted(response_data['data']['packs'], cmp=cmp)
+						print sorted_list
+						for pack in sorted_list:
 							if 'IPV6' in pack['botname'].upper():
 								continue
 							bot_name = pack['botname']
