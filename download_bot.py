@@ -82,9 +82,9 @@ class DCCReceive(irc.client.SimpleIRCClient):
         return "Python irc.bot ({version})".format(
             version=irc.client.VERSION_STRING)
     
-    # # print out any private notices we get
-    # def on_privnotice(self, connection, event):
-    #     print event.source.nick, event.arguments
+    # print out any private notices we get
+    def on_privnotice(self, connection, event):
+        print event.source.nick, event.arguments
     
     # On intial ask for download
     def on_ctcp(self, connection, event):

@@ -92,7 +92,8 @@ def main():
 									'episode': episode_num,
 									'anime':anime[0],
 									'subgroup': subgroup,
-									'quality': quality
+									'quality': quality,
+									'filename': pack_name
 									})
 								episodes_needed.pop(episodes_needed.index(episode_num))
 						break
@@ -102,8 +103,8 @@ def main():
 			print "Unable to find the rest of the episodes: ", ",".join(episodes_needed)
 
 	for added_episode in episodes_to_add:
-		c.execute('INSERT OR IGNORE INTO episodes (number, status, series, botname, packnumber, subgroup, quality) VALUES (?, 0, ?, ?, ?, ? , ?)',
-			(added_episode['episode'], added_episode['anime'], added_episode['pack']['botname'], added_episode['pack']['id'], added_episode['subgroup'], added_episode['quality'],))
+		c.execute('INSERT OR IGNORE INTO episodes (number, status, series, botname, packnumber, subgroup, quality, filename) VALUES (?, 0, ?, ?, ?, ? , ?, ?)',
+			(added_episode['episode'], added_episode['anime'], added_episode['pack']['botname'], added_episode['pack']['id'], added_episode['subgroup'], added_episode['quality'], added_episode['filename'],))
 	conn.commit()
 
 	conn.close()

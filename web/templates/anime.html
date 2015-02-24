@@ -1,0 +1,15 @@
+<!doctype html>
+<title>{{info.title}}</title>
+
+<h1>{{info.title}}</h1>
+<h2>Episodes</h2>
+{% if episodes %}
+<ul>
+	{% for episode in episodes %}
+		<li><a href="/episode/{{episode.id}}">{{info.title}} - Episode {{episode.number}}</a></li>
+	{% endfor %}
+</ul>
+{% else %}
+<p>No episodes... :( </p>
+{% endif %}
+<a href="/">Home</a>
