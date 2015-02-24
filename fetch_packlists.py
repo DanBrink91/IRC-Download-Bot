@@ -3,6 +3,7 @@ import urllib
 import json
 import sqlite3
 import re
+import mal_settings
 def parse_name(name):
 	"""
 	Takes in name, outputs subgroup, title, episode, quality
@@ -13,6 +14,21 @@ def parse_name(name):
 	else:
 		# NEIN NEIN NEIN NEIN
 		return None, None, None, None
+
+def compare_packs(pack1, pack2):
+
+	a_index = len(mal_settings.preference) + 1
+	for i, pref in enumerate(mal_settings.preference):
+		if pref in pack1:
+			a_index = i
+
+	b_index = len(pref) + 1
+	for i, pref in enumerate(mal_settings.preference):
+		if pref in pack2:
+			b_index = i
+
+	return a_index - b_index
+	
 def main():
 
 	# read in file
@@ -57,6 +73,10 @@ def main():
 						print "Skipping title ", anime_title
 						continue
 					if response_data['data'] and 'packs' in response_data['data']:
+						#filter packs
+
+						test = sorted(response_data['data']['packs'], cmp=cmp)
+						print test
 						for pack in response_data['data']['packs']:
 							if 'IPV6' in pack['botname'].upper():
 								continue
