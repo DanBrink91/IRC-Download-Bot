@@ -24,3 +24,6 @@ password = ""
 # It MUST be unicode
 # ex. u'User'
 user = u''
+
+# preffered resolutions
+resolution_pref = ['1080', '720']

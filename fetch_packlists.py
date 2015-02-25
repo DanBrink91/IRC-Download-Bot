@@ -3,7 +3,12 @@ import urllib
 import json
 import sqlite3
 import re
-import mal_settings
+import settings
+
+# global... because lazy.
+# TODO be less lazy and find a nicer way to get this to the compare function
+subgroup_pref = None
+
 def parse_name(name):
 	"""
 	Takes in name, outputs subgroup, title, episode, quality
@@ -16,21 +21,38 @@ def parse_name(name):
 		return None, None, None, None
 
 def compare_packs(pack1, pack2):
-
-	a_index = len(mal_settings.resolution_pref) + 1
-	for i, pref in enumerate(mal_settings.resolution_pref):
+	"""
+		Used to sort packs, favors prefered Quality and Subgroups.
+	"""
+	global subgroup_pref
+	pack1_res_index = len(settings.resolution_pref) + 1
+	for i, pref in enumerate(settings.resolution_pref):
 		if pref in pack1:
-			a_index = i
+			pack1_res_index = i
+			break
 
-	b_index = len(pref) + 1
-	for i, pref in enumerate(mal_settings.resolution_pref):
+	pack1_sub_index = len(subgroup_pref) + 1
+	for i, subgroup in enumerate(subgroup_pref):
+		if subgroup in pack1:
+			pack1_sub_index = i
+			break 
+	
+	pack2_res_index = len(pref) + 1
+	for i, pref in enumerate(settings.resolution_pref):
 		if pref in pack2:
-			b_index = i
+			pack2_res_index = i
+			break
 
-	return a_index - b_index
+	pack2_sub_index = len(subgroup_pref) + 1
+	for i, subgroup in enumerate(subgroup_pref):
+		if subgroup in pack2:
+			pack2_sub_index = i
+			break 
+	
+	return pack1_res_index + pack1_sub_index - pack2_res_index + pack2_sub_index
 	
 def main():
-
+	global subgroup_pref
 	# read in file
 	BASE_URL = "https://news.kae.re/api/0.1/search/"
 	# grab list of anime to fetch
@@ -56,7 +78,10 @@ def main():
 		# If we don't need anything skip this anime
 		if len(episodes_needed) == 0:
 			continue
-			
+		# Find the preffered fansub for this anime
+		c.execute('SELECT subgroup FROM episodes WHERE series = ? GROUP BY subgroup ORDER BY COUNT(*) DESC', (anime[0],))
+		subgroup_pref = c.fetchall()
+		print subgroup_pref
 		# Compile a list of all possible names we can search for
 		possible_titles = [anime[1]] + anime[2].split('&&') 
 		for anime_title in possible_titles:
@@ -76,7 +101,6 @@ def main():
 						#filter packs
 
 						sorted_list = sorted(response_data['data']['packs'], cmp=compare_packs)
-						print sorted_list
 						for pack in sorted_list:
 							if 'IPV6' in pack['botname'].upper():
 								continue
@@ -105,6 +129,7 @@ def main():
 	for added_episode in episodes_to_add:
 		c.execute('INSERT OR IGNORE INTO episodes (number, status, series, botname, packnumber, subgroup, quality, filename) VALUES (?, 0, ?, ?, ?, ? , ?, ?)',
 			(added_episode['episode'], added_episode['anime'], added_episode['pack']['botname'], added_episode['pack']['id'], added_episode['subgroup'], added_episode['quality'], added_episode['filename'],))
+	
 	conn.commit()
 
 	conn.close()
