@@ -15,7 +15,7 @@ def parse_name(name):
 	"""
 	groups = re.match(r'\[(.*?)\](.*)-.*?(\d+).*?\[(.*?)\]', name)
 	if groups:
-		return groups.group(1), groups.group(2), int(groups.group(3)), groups.group(4)
+		return str(groups.group(1)), str(groups.group(2)), int(groups.group(3)), str(groups.group(4))
 	else:
 		# NEIN NEIN NEIN NEIN
 		return None, None, None, None
@@ -86,9 +86,9 @@ def main():
 		possible_titles = [anime[1]] + anime[2].split('&&') 
 		for anime_title in possible_titles:
 			# Search for pack lists
-			anime_title = urllib.quote(anime_title)
-			anime_title = anime_title.replace("%3A", "")
-			url = BASE_URL + anime_title + ".json"
+			anime_url_title = urllib.quote(anime_title)
+			anime_url_title = anime_url_title.replace("%3A", "")
+			url = BASE_URL + anime_url_title + ".json"
 			packlist = requests.get(url, verify = False)
 
 			if packlist.status_code == 200:
@@ -108,6 +108,9 @@ def main():
 							pack_name = pack['name']
 							pack_id = pack['id']
 							subgroup, title, episode_num, quality = parse_name(pack_name)
+							title = title.replace('_', ' ')
+							if title.upper().strip() != anime_title.upper().strip():
+								continue
 							# TODO check quality and make sure bot is whitelisted here
 							# TODO priortize different bots to allow faster downloading?
 							if episode_num in episodes_needed:
@@ -120,12 +123,10 @@ def main():
 									'filename': pack_name
 									})
 								episodes_needed.pop(episodes_needed.index(episode_num))
-						break
 		if len(episodes_needed):
 			# make sure its all strings
 			episodes_needed = map(str, episodes_needed)
 			print "Unable to find the rest of the episodes: ", ",".join(episodes_needed)
-
 	for added_episode in episodes_to_add:
 		c.execute('INSERT OR IGNORE INTO episodes (number, status, series, botname, packnumber, subgroup, quality, filename) VALUES (?, 0, ?, ?, ?, ? , ?, ?)',
 			(added_episode['episode'], added_episode['anime'], added_episode['pack']['botname'], added_episode['pack']['id'], added_episode['subgroup'], added_episode['quality'], added_episode['filename'],))

@@ -1,5 +1,5 @@
 import sqlite3
-from flask import Flask, g, render_template, send_from_directory
+from flask import Flask, g, render_template, send_from_directory, request
 import os
 
 DATABASE = "../mal_db.db"
@@ -54,12 +54,25 @@ GROUP BY animes.id""")
 	
 	return render_template('index.html', ongoing=ongoing_anime, completed=completed_anime)
 
-@app.route('/anime/<int:anime_id>')
+@app.route('/anime/<int:anime_id>', methods=['GET', 'POST'])
 def anime(anime_id):
 	anime_info = query_db("SELECT * FROM animes WHERE id=?", (anime_id, ), True)
-	episodes = query_db("SELECT * FROM episodes WHERE series=?", (anime_id, ))
+	titles = [anime_info['title']] + anime_info['alternative_titles'].split('&&')
+	if request.method == 'POST':
+		title = request.form['title']
+		if title in titles:
+			return "Title already existed"
+		new_titles = '&&'.join(anime_info['alternative_titles'].split('&&') + [title])
 
-	return render_template('anime.html', info=anime_info, episodes=episodes)
+		db = get_db()
+		cur = db.execute('UPDATE animes SET alternative_titles=? WHERE id=?', (new_titles, anime_id, ))
+		db.commit()
+		cur.close()
+		return "updated"
+
+	else:
+		episodes = query_db("SELECT * FROM episodes WHERE series=?", (anime_id, ))  
+		return render_template('anime.html', info=anime_info, episodes=episodes, titles=titles)
 
 @app.route('/episode/<int:episode_id>')
 def episode(episode_id):
