@@ -62,8 +62,8 @@ def main():
 						other_titles.append(val.encode('ascii', 'ignore'))
 			# using && as a separater for now
 			other_titles_string = '&&'.join(other_titles)
-			#sqlite doesn't have insert on duplicate so whatever
-			c.execute('REPLACE INTO animes (title, alternative_titles, current_ep, max_ep, mal_id) VALUES (?, ?, ?, ?, ?)', (title, other_titles_string, episode, max_eps, mal_id))
+			# sqlite doesn't have insert on duplicate so whatever
+			c.execute('INSERT OR  REPLACE INTO animes (id, title, alternative_titles, current_ep, max_ep, mal_id) VALUES ((SELECT id FROM animes WHERE mal_id=?), ?, COALESCE((SELECT alternative_titles FROM animes WHERE mal_id=?), ?), COALESCE((SELECT current_ep FROM animes WHERE mal_id=?), ?), ?, ?)', (mal_id, title, mal_id, other_titles_string, mal_id, episode, max_eps, mal_id))
 			conn.commit()
 
 	conn.close()
