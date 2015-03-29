@@ -67,8 +67,6 @@ class DCCReceive(irc.client.SimpleIRCClient):
         for added_download in recently_added:
             print "Attempting to download %s" % (added_download['series_title'] + ' - ' + str(added_download['episode_number']))
             
-            # Run this cancel command to avoid waiting
-            self.connection.privmsg(added_download['bot'], 'XDCC CANCEL')
             self.connection.privmsg(added_download['bot'], 'XDCC SEND %s' % added_download['pack_num'])
   
     def on_welcome(self, connection, event):
@@ -205,4 +203,5 @@ if __name__ == "__main__":
         print x
         sys.exit(1)
     c.start()
+    conn.commit()
     conn.close()

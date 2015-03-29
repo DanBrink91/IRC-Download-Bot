@@ -107,7 +107,11 @@ def main():
 							bot_name = pack['botname']
 							pack_name = pack['name']
 							pack_id = pack['id']
+
 							subgroup, title, episode_num, quality = parse_name(pack_name)
+							# fail to parse :(
+							if title == None:
+								continue
 							title = title.replace('_', ' ')
 							if title.upper().strip() != anime_title.upper().strip():
 								continue
