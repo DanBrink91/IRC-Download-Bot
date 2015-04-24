@@ -2,8 +2,36 @@
 <title>{{anime.title}} - Episode {{episode.number}}</title>
 
 <h1><a href="/anime/{{anime.id}}">{{anime.title}}</a> - Episode {{episode.number}}</h1>
-<video controls>
+<a href="/">Home</a>
+<video id="episodeVideo" controls>
 	<source src="/video/{{episode_path}}" type="video/webm">
 	Your browser does not support the video element.
 </video>
-<a href="/">Home</a>
+<div class="episodes">
+	<ul>
+	{% for ep in all_episodes %}
+	<li><a href="/episode/{{ep.id}}">Episode {{ep.number}}</a></li>
+	{% endfor %}
+	</ul>
+</div>
+<script>
+var animeID = {{anime.id}};
+var playingEpisode = {{episode.number}};
+var vid = document.getElementById("episodeVideo");
+var nextEpTimer = null;
+// as video plays
+vid.ontimeupdate = function(e) {
+	if(this.duration - this.currentTime < 90) {
+		var xmlhttp = new XMLHttpRequest();
+
+		xmlhttp.onload = function() {
+			var next_vid = this.responseText;
+			console.log(next_vid);
+		};
+		xmlhttp.open("POST", window.location.href+"/complete", true);
+		xmlhttp.send();
+		// show next episode
+	}
+}
+
+</script>

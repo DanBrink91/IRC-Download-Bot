@@ -5,7 +5,7 @@
 {% if ongoing %}
 <ul>
 	{% for anime in ongoing %}
-		<li><a href="episode/{{anime.episode_id}}">{{anime.title}} - Episode {{anime.current_episode}}</a></li>
+		<li><a href="episode/{{anime.Anime.episode_id}}">{{anime.Anime.title}} - Episode {{anime.current_episode}}</a></li>
 	{% endfor %}
 </ul>
 {% else %}
@@ -16,7 +16,7 @@
 {% if completed %}
 <ul>
 	{% for anime in completed %}
-		<li><a href="anime/{{anime.id}}">{{anime.title}}</a></li>
+		<li><a href="anime/{{anime.Anime.id}}">{{anime.Anime.title}}</a></li>
 	{% endfor %}
 </ul>
 {% else %}
