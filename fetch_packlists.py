@@ -4,7 +4,6 @@ import json
 import sqlite3
 import re
 import settings
-
 # global... because lazy.
 # TODO be less lazy and find a nicer way to get this to the compare function
 subgroup_pref = None
@@ -89,6 +88,7 @@ def main():
 			anime_url_title = urllib.quote(anime_title)
 			anime_url_title = anime_url_title.replace("%3A", "")
 			url = BASE_URL + anime_url_title + ".json"
+			print url
 			packlist = requests.get(url, verify = False)
 
 			if packlist.status_code == 200:
